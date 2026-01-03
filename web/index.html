@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trame</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fafafa;
+      color: #1a1a1a;
+    }
+    textarea {
+      width: 100%;
+      height: 100%;
+      padding: 40px;
+      border: none;
+      background: transparent;
+      color: inherit;
+      font-family: inherit;
+      font-size: 18px;
+      line-height: 1.8;
+      resize: none;
+    }
+    textarea:focus { outline: none; }
+    textarea::placeholder { color: #999; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #1a1a1a; color: #e5e5e5; }
+      textarea::placeholder { color: #555; }
+    }
+  </style>
+</head>
+<body>
+  <textarea id="note" placeholder="Start writing..." autofocus></textarea>
+  <script>
+    const API = '/api';
+    let token = localStorage.getItem('token');
+
+    const note = document.getElementById('note');
+    let saveTimeout = null;
+
+    async function init() {
+      if (!token) {
+        await auth();
+      }
+      await loadNote();
+    }
+
+    async function auth() {
+      const email = prompt('Email:');
+      if (!email) return location.reload();
+
+      const password = prompt('Password:');
+      if (!password) return location.reload();
+
+      // Try login first
+      let res = await fetch(API + '/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      // If login fails, try signup
+      if (!res.ok) {
+        res = await fetch(API + '/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+      }
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || 'Auth failed');
+        return location.reload();
+      }
+
+      const data = await res.json();
+      token = data.token;
+      localStorage.setItem('token', token);
+    }
+
+    async function loadNote() {
+      const res = await fetch(API + '/note', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem('token');
+        token = null;
+        return init();
+      }
+
+      const data = await res.json();
+      note.value = data.content || '';
+    }
+
+    note.addEventListener('input', () => {
+      if (saveTimeout) clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(saveNote, 500);
+    });
+
+    async function saveNote() {
+      await fetch(API + '/note', {
+        method: 'PUT',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content: note.value })
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>

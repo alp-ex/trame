@@ -1,0 +1,39 @@
+[package]
+name = "trame-server"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "trame"
+path = "src/lib.rs"
+
+[[bin]]
+name = "trame-server"
+path = "src/main.rs"
+
+[dependencies]
+# HTTP server (raw, no framework)
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Database
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Crypto
+argon2 = "0.5"
+rand = "0.8"
+base64 = "0.22"
+base64ct = "=1.6.0"  # Pin to avoid edition2024 requirement
+
+# Utils
+chrono = { version = "0.4", features = ["serde"] }
+ulid = "1"
+
+[dev-dependencies]
+reqwest = { version = "0.12", features = ["json"] }

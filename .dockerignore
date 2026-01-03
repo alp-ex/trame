@@ -1,0 +1,6 @@
+target/
+*.db
+.git/
+.gitignore
+.env
+*.md

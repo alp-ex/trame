@@ -1,0 +1,67 @@
+# =============================================================================
+# Trame - Docker Compose Configuration
+# =============================================================================
+#
+# Usage:
+#   Development:  docker compose --profile dev up
+#   Production:   docker compose --profile prod up -d
+#
+# Environment files:
+#   - .env.dev  -> Development settings (used with --profile dev)
+#   - .env.prod -> Production settings (used with --profile prod)
+#
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Development Service (hot reload with cargo-watch)
+  # ---------------------------------------------------------------------------
+  trame-dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      target: dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - cargo-cache:/usr/local/cargo/registry
+      - target-cache:/app/target
+      - trame-data-dev:/app/data
+    env_file:
+      - .env.dev
+    environment:
+      - RUST_BACKTRACE=1
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Production Service (optimized binary)
+  # ---------------------------------------------------------------------------
+  trame-prod:
+    profiles: ["prod"]
+    build:
+      context: .
+      target: prod
+    ports:
+      - "${PORT:-10000}:10000"
+    volumes:
+      - trame-data-prod:/app/data
+    env_file:
+      - .env.prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:10000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  trame-data-dev:
+    name: trame-data-dev
+  trame-data-prod:
+    name: trame-data-prod
+  cargo-cache:
+    name: trame-cargo-cache
+  target-cache:
+    name: trame-target-cache
