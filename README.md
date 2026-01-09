@@ -160,11 +160,35 @@ cargo test
 
 ---
 
-## Deploy to Render
+## Deploy to Fly.io
 
-1. Push to GitHub
-2. Create new Web Service on [Render](https://render.com)
-3. Connect your repo
-4. Render will auto-detect `render.yaml`
+```bash
+# Install Fly CLI (if not already installed)
+curl -L https://fly.io/install.sh | sh
 
-Or click: [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+# Login
+fly auth login
+
+# Launch (first time)
+fly launch
+
+# Deploy (subsequent times)
+fly deploy
+```
+
+**Useful commands:**
+```bash
+# View logs
+fly logs
+
+# SSH into the machine
+fly ssh console
+
+# Inspect database
+fly ssh console -C "sqlite3 /data/trame.db '.tables'"
+
+# Check app status
+fly status
+```
+
+Your app will be available at `https://trame.fly.dev`

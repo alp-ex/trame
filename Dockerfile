@@ -81,24 +81,17 @@ WORKDIR /app
 # Install only runtime dependencies
 RUN apt-get update && apt-get install -y \
     ca-certificates \
+    sqlite3 \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd -r -s /bin/false trame \
-    && mkdir -p /app/data \
-    && chown -R trame:trame /app
+    && mkdir -p /data
 
 # Copy binary from builder
 COPY --from=builder /app/target/release/trame-server /app/trame-server
 
-# Use non-root user
-USER trame
-
 ENV HOST=0.0.0.0
-ENV PORT=10000
-ENV DATABASE_URL=/app/data/trame.db
+ENV PORT=8080
+ENV DATABASE_URL=/data/trame.db
 
-EXPOSE 10000
-
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD ["/app/trame-server", "--health-check"] || exit 1
+EXPOSE 8080
 
 CMD ["/app/trame-server"]

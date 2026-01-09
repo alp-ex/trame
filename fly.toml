@@ -1,0 +1,40 @@
+# =============================================================================
+# Fly.io Configuration
+# =============================================================================
+# Deploy: fly deploy
+# Logs:   fly logs
+# SSH:    fly ssh console
+# DB:     fly ssh console -C "sqlite3 /data/trame.db"
+# =============================================================================
+
+app = "trame"
+primary_region = "cdg"  # Paris
+
+[build]
+  dockerfile = "Dockerfile"
+  target = "prod"
+
+[env]
+  HOST = "0.0.0.0"
+  PORT = "8080"
+  DATABASE_URL = "/data/trame.db"
+  ALLOWED_ORIGIN = "*"
+  RUST_LOG = "info"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  path = "/api/health"
+  timeout = "5s"
+
+[mounts]
+  source = "trame_data"
+  destination = "/data"
