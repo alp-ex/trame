@@ -33,6 +33,10 @@ pub struct NoteResponse {
     pub updated_at: String,
 }
 
+pub struct AuthInfo {
+    pub user_id: String,
+}
+
 #[derive(Deserialize)]
 pub struct UpdateNoteRequest {
     pub content: String,
@@ -101,7 +105,7 @@ pub fn login(state: &Arc<AppState>, body: &str) -> Result<String, (u16, String)>
         .db
         .get_user_by_email(&req.email)
         .map_err(db_error)?
-        .ok_or_else(|| (401, json_error("Invalid credentials")))?;
+        .ok_or_else(|| (404, json_error("User not found")))?;
 
     // Verify password
     let parsed_hash =
@@ -163,7 +167,7 @@ pub fn update_note(
 pub fn authenticate(
     state: &Arc<AppState>,
     auth_header: Option<&str>,
-) -> Result<String, (u16, String)> {
+) -> Result<AuthInfo, (u16, String)> {
     let token = auth_header
         .and_then(|h| h.strip_prefix("Bearer "))
         .ok_or_else(|| (401, json_error("Missing authorization")))?;
@@ -183,7 +187,9 @@ pub fn authenticate(
         return Err((401, json_error("Token expired")));
     }
 
-    Ok(session.user_id)
+    Ok(AuthInfo {
+        user_id: session.user_id,
+    })
 }
 
 // Helpers
@@ -200,6 +206,7 @@ fn json_error(msg: &str) -> String {
     .unwrap()
 }
 
-fn db_error(_: rusqlite::Error) -> (u16, String) {
+fn db_error(err: rusqlite::Error) -> (u16, String) {
+    eprintln!("Database error: {:?}", err);
     (500, json_error("Database error"))
 }

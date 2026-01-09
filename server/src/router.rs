@@ -42,13 +42,13 @@ impl Router {
             }
             (Method::GET, "/api/note") => {
                 match handlers::authenticate(&state, auth_header.as_deref()) {
-                    Ok(user_id) => handlers::get_note(&state, &user_id),
+                    Ok(auth) => handlers::get_note(&state, &auth.user_id),
                     Err(e) => Err(e),
                 }
             }
             (Method::PUT, "/api/note") => {
                 match handlers::authenticate(&state, auth_header.as_deref()) {
-                    Ok(user_id) => handlers::update_note(&state, &user_id, &body_str),
+                    Ok(auth) => handlers::update_note(&state, &auth.user_id, &body_str),
                     Err(e) => Err(e),
                 }
             }

@@ -146,7 +146,7 @@ docker run -p 3000:10000 -v trame-data:/app/data trame
 | POST | `/api/login` | Sign in |
 | POST | `/api/logout` | Sign out |
 | GET | `/api/note` | Get note |
-| PUT | `/api/note` | Update note |
+| PUT | `/api/note` | Update note (auto-saves with 500ms debounce) |
 | GET | `/api/health` | Health check |
 
 ---

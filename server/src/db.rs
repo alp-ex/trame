@@ -191,9 +191,13 @@ impl Database {
     }
 
     pub fn update_note(&self, user_id: &str, content: &str) -> Result<Note, rusqlite::Error> {
+        // Ensure note exists
+        self.get_or_create_note(user_id)?;
+
         let conn = self.conn.lock().unwrap();
         let now = chrono::Utc::now().to_rfc3339();
 
+        // Simple update - no auto-versioning, last write wins
         conn.execute(
             "UPDATE notes SET content = ?1, updated_at = ?2 WHERE user_id = ?3",
             params![content, now, user_id],
@@ -255,7 +259,7 @@ mod tests {
         assert_eq!(note.user_id, "user1");
         assert_eq!(note.content, "");
 
-        // Update
+        // Update note
         let updated = db.update_note("user1", "Hello world").unwrap();
         assert_eq!(updated.content, "Hello world");
 

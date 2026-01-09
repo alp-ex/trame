@@ -9,8 +9,13 @@ use trame::{config::Config, router::Router, AppState};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // Load .env file (ignore if not found)
+    dotenvy::dotenv().ok();
+
     let config = Config::from_env();
     let addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
+
+    println!("Database: {}", config.database_url);
 
     let state = AppState::new(config)?;
     let listener = TcpListener::bind(addr).await?;

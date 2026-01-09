@@ -1,119 +1,409 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trame</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #fafafa;
-      color: #1a1a1a;
-    }
-    textarea {
-      width: 100%;
-      height: 100%;
-      padding: 40px;
-      border: none;
-      background: transparent;
-      color: inherit;
-      font-family: inherit;
-      font-size: 18px;
-      line-height: 1.8;
-      resize: none;
-    }
-    textarea:focus { outline: none; }
-    textarea::placeholder { color: #999; }
-    @media (prefers-color-scheme: dark) {
-      body { background: #1a1a1a; color: #e5e5e5; }
-      textarea::placeholder { color: #555; }
-    }
-  </style>
-</head>
-<body>
-  <textarea id="note" placeholder="Start writing..." autofocus></textarea>
-  <script>
-    const API = '/api';
-    let token = localStorage.getItem('token');
-
-    const note = document.getElementById('note');
-    let saveTimeout = null;
-
-    async function init() {
-      if (!token) {
-        await auth();
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trame</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
-      await loadNote();
-    }
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #fafafa;
+        color: #1a1a1a;
+      }
+      .container {
+        display: flex;
+        height: 100%;
+      }
+      .editor {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      textarea {
+        flex: 1;
+        padding: 40px;
+        border: none;
+        background: transparent;
+        color: inherit;
+        font-family: inherit;
+        font-size: 18px;
+        line-height: 1.8;
+        resize: none;
+      }
+      textarea:focus {
+        outline: none;
+      }
+      textarea::placeholder {
+        color: #999;
+      }
+      .toolbar {
+        padding: 12px 40px;
+        border-top: 1px solid #e5e5e5;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      .toolbar-spacer {
+        flex: 1;
+      }
+      button {
+        padding: 8px 16px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: #fff;
+        color: inherit;
+        font-family: inherit;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #f5f5f5;
+      }
+      .btn-logout {
+        color: #666;
+        border-color: transparent;
+      }
+      .btn-logout:hover {
+        background: transparent;
+        color: #1a1a1a;
+      }
+      /* Auth styles */
+      .auth-overlay {
+        position: fixed;
+        inset: 0;
+        background: #fafafa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+      .auth-form {
+        width: 100%;
+        max-width: 320px;
+        padding: 40px;
+      }
+      .auth-title {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .auth-subtitle {
+        color: #666;
+        margin-bottom: 32px;
+      }
+      .auth-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+        font-family: inherit;
+        margin-bottom: 12px;
+        background: #fff;
+        color: inherit;
+      }
+      .auth-input:focus {
+        outline: none;
+        border-color: #999;
+      }
+      .auth-btn {
+        width: 100%;
+        padding: 12px 16px;
+        border: none;
+        border-radius: 8px;
+        background: #1a1a1a;
+        color: #fff;
+        font-size: 16px;
+        font-family: inherit;
+        cursor: pointer;
+        margin-top: 8px;
+      }
+      .auth-btn:hover {
+        background: #333;
+      }
+      .auth-error {
+        color: #dc2626;
+        font-size: 14px;
+        margin-top: 12px;
+        display: none;
+      }
+      .auth-error.show {
+        display: block;
+      }
+      .hidden {
+        display: none !important;
+      }
 
-    async function auth() {
-      const email = prompt('Email:');
-      if (!email) return location.reload();
+      @media (prefers-color-scheme: dark) {
+        body,
+        .auth-overlay {
+          background: #1a1a1a;
+          color: #e5e5e5;
+        }
+        textarea::placeholder {
+          color: #555;
+        }
+        .toolbar {
+          border-color: #333;
+        }
+        button {
+          background: #2a2a2a;
+          border-color: #444;
+        }
+        button:hover {
+          background: #333;
+        }
+        .btn-logout {
+          color: #888;
+          border-color: transparent;
+        }
+        .btn-logout:hover {
+          background: transparent;
+          color: #e5e5e5;
+        }
+        .auth-subtitle {
+          color: #888;
+        }
+        .auth-input {
+          background: #2a2a2a;
+          border-color: #444;
+        }
+        .auth-input:focus {
+          border-color: #666;
+        }
+        .auth-btn {
+          background: #e5e5e5;
+          color: #1a1a1a;
+        }
+        .auth-btn:hover {
+          background: #fff;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Auth overlay -->
+    <div class="auth-overlay" id="auth-overlay">
+      <form class="auth-form" id="auth-form">
+        <div class="auth-title">Trame</div>
+        <div class="auth-subtitle">Sign in or create an account</div>
+        <input
+          type="email"
+          class="auth-input"
+          id="auth-email"
+          placeholder="Email"
+          required
+          autocomplete="email"
+        />
+        <input
+          type="password"
+          class="auth-input"
+          id="auth-password"
+          placeholder="Password"
+          required
+          autocomplete="current-password"
+        />
+        <button type="submit" class="auth-btn">Continue</button>
+        <div class="auth-error" id="auth-error"></div>
+      </form>
+    </div>
 
-      const password = prompt('Password:');
-      if (!password) return location.reload();
+    <!-- Main app -->
+    <div class="container hidden" id="app">
+      <div class="editor">
+        <textarea id="note" placeholder="Start writing..." autofocus></textarea>
+        <div class="toolbar">
+          <div class="toolbar-spacer"></div>
+          <button class="btn-logout" id="logout-btn">Sign out</button>
+        </div>
+      </div>
+    </div>
 
-      // Try login first
-      let res = await fetch(API + '/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
+    <script>
+      const API = "/api";
+      let token = localStorage.getItem("token");
 
-      // If login fails, try signup
-      if (!res.ok) {
-        res = await fetch(API + '/signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
+      const authOverlay = document.getElementById("auth-overlay");
+      const authForm = document.getElementById("auth-form");
+      const authEmail = document.getElementById("auth-email");
+      const authPassword = document.getElementById("auth-password");
+      const authError = document.getElementById("auth-error");
+      const app = document.getElementById("app");
+      const note = document.getElementById("note");
+      let saveTimeout = null;
+
+      async function init() {
+        if (token) {
+          // Verify token is still valid
+          try {
+            const res = await fetch(API + "/note", {
+              headers: { Authorization: "Bearer " + token },
+            });
+            if (res.ok) {
+              showApp();
+              const data = await res.json();
+              note.value = data.content || "";
+              return;
+            }
+            // Only clear token on 401 (invalid/expired token)
+            if (res.status === 401) {
+              localStorage.removeItem("token");
+              token = null;
+            }
+          } catch (err) {
+            // Network error (server down) - don't clear token, just show app
+            // User can retry when server is back
+            console.warn("Server unreachable, using cached session");
+            showApp();
+            return;
+          }
+        }
+        showAuth();
+      }
+
+      function showAuth() {
+        authOverlay.classList.remove("hidden");
+        app.classList.add("hidden");
+        authEmail.focus();
+      }
+
+      function showApp() {
+        authOverlay.classList.add("hidden");
+        app.classList.remove("hidden");
+        note.focus();
+      }
+
+      function showError(msg) {
+        authError.textContent = msg;
+        authError.classList.add("show");
+      }
+
+      function hideError() {
+        authError.classList.remove("show");
+      }
+
+      authForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideError();
+
+        const email = authEmail.value.trim();
+        const password = authPassword.value;
+
+        // Try login first
+        let res = await fetch(API + "/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
         });
-      }
 
-      if (!res.ok) {
+        if (res.ok) {
+          const data = await res.json();
+          token = data.token;
+          localStorage.setItem("token", token);
+          showApp();
+          await loadNote();
+          return;
+        }
+
+        // Login failed - check why
+        const loginError = await res.json();
+
+        // Wrong password - user exists but credentials don't match
+        if (loginError.error === "Invalid credentials") {
+          showError("Incorrect password");
+          return;
+        }
+
+        // User not found - try signup
+        res = await fetch(API + "/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          showError(data.error || "Authentication failed");
+          return;
+        }
+
         const data = await res.json();
-        alert(data.error || 'Auth failed');
-        return location.reload();
-      }
+        token = data.token;
+        localStorage.setItem("token", token);
 
-      const data = await res.json();
-      token = data.token;
-      localStorage.setItem('token', token);
-    }
-
-    async function loadNote() {
-      const res = await fetch(API + '/note', {
-        headers: { 'Authorization': 'Bearer ' + token }
+        showApp();
+        await loadNote();
       });
 
-      if (res.status === 401) {
-        localStorage.removeItem('token');
+      async function loadNote() {
+        try {
+          const res = await fetch(API + "/note", {
+            headers: { Authorization: "Bearer " + token },
+          });
+
+          if (res.status === 401) {
+            localStorage.removeItem("token");
+            token = null;
+            showAuth();
+            return;
+          }
+
+          if (res.ok) {
+            const data = await res.json();
+            note.value = data.content || "";
+          }
+        } catch (err) {
+          console.warn("Failed to load note, server may be restarting");
+        }
+      }
+
+      note.addEventListener("input", () => {
+        if (saveTimeout) clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(saveNote, 500);
+      });
+
+      async function saveNote() {
+        try {
+          await fetch(API + "/note", {
+            method: "PUT",
+            headers: {
+              Authorization: "Bearer " + token,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ content: note.value }),
+          });
+        } catch (err) {
+          // Server may be restarting, will retry on next input
+        }
+      }
+
+      async function logout() {
+        await fetch(API + "/logout", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+        });
+        localStorage.removeItem("token");
         token = null;
-        return init();
+        note.value = "";
+        authEmail.value = "";
+        authPassword.value = "";
+        showAuth();
       }
 
-      const data = await res.json();
-      note.value = data.content || '';
-    }
+      // Event listeners
+      document.getElementById("logout-btn").addEventListener("click", logout);
 
-    note.addEventListener('input', () => {
-      if (saveTimeout) clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(saveNote, 500);
-    });
-
-    async function saveNote() {
-      await fetch(API + '/note', {
-        method: 'PUT',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ content: note.value })
-      });
-    }
-
-    init();
-  </script>
-</body>
+      init();
+    </script>
+  </body>
 </html>
