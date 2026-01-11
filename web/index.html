@@ -23,6 +23,11 @@
       .container {
         display: flex;
         height: 100%;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .container.visible {
+        opacity: 1;
       }
       .editor {
         flex: 1;
@@ -65,6 +70,7 @@
         font-family: inherit;
         font-size: 14px;
         cursor: pointer;
+        transition: all 0.15s ease;
       }
       button:hover {
         background: #f5f5f5;
@@ -77,78 +83,243 @@
         background: transparent;
         color: #1a1a1a;
       }
+
       /* Auth styles */
       .auth-overlay {
         position: fixed;
         inset: 0;
-        background: #fafafa;
+        background: linear-gradient(145deg, #fafafa 0%, #f0f0f0 100%);
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 100;
+        opacity: 1;
+        transition: opacity 0.3s ease;
+      }
+      .auth-overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
       }
       .auth-form {
         width: 100%;
-        max-width: 320px;
-        padding: 40px;
+        max-width: 380px;
+        padding: 48px 40px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+        transform: translateY(0);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      .auth-form:focus-within {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+      }
+      .auth-header {
+        text-align: center;
+        margin-bottom: 32px;
       }
       .auth-title {
-        font-size: 24px;
+        font-size: 28px;
         font-weight: 600;
+        letter-spacing: -0.5px;
         margin-bottom: 8px;
       }
       .auth-subtitle {
         color: #666;
-        margin-bottom: 32px;
+        font-size: 15px;
+        line-height: 1.5;
+      }
+      .auth-fields {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .input-group {
+        position: relative;
       }
       .auth-input {
         width: 100%;
-        padding: 12px 16px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
+        padding: 14px 16px;
+        border: 1.5px solid #e5e5e5;
+        border-radius: 10px;
         font-size: 16px;
         font-family: inherit;
-        margin-bottom: 12px;
-        background: #fff;
+        background: #fafafa;
         color: inherit;
+        transition: all 0.2s ease;
+      }
+      .auth-input:hover {
+        border-color: #ccc;
       }
       .auth-input:focus {
         outline: none;
-        border-color: #999;
+        border-color: #1a1a1a;
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.08);
+      }
+      .auth-input::placeholder {
+        color: #999;
+      }
+      .password-toggle {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        padding: 4px 8px;
+        cursor: pointer;
+        color: #888;
+        font-size: 13px;
+        border-radius: 4px;
+      }
+      .password-toggle:hover {
+        color: #555;
+        background: rgba(0, 0, 0, 0.04);
+      }
+      .auth-input[type="password"] ~ .password-toggle::after {
+        content: "Show";
+      }
+      .auth-input[type="text"] ~ .password-toggle::after {
+        content: "Hide";
       }
       .auth-btn {
         width: 100%;
-        padding: 12px 16px;
+        padding: 14px 16px;
         border: none;
-        border-radius: 8px;
+        border-radius: 10px;
         background: #1a1a1a;
         color: #fff;
         font-size: 16px;
+        font-weight: 500;
         font-family: inherit;
         cursor: pointer;
         margin-top: 8px;
+        transition: all 0.2s ease;
+        position: relative;
       }
-      .auth-btn:hover {
+      .auth-btn:hover:not(:disabled) {
         background: #333;
+        transform: translateY(-1px);
+      }
+      .auth-btn:active:not(:disabled) {
+        transform: translateY(0);
+      }
+      .auth-btn:disabled {
+        background: #888;
+        cursor: not-allowed;
+      }
+      .auth-btn.loading .btn-text {
+        visibility: hidden;
+      }
+      .auth-btn .spinner {
+        display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      .auth-btn.loading .spinner {
+        display: block;
+      }
+      @keyframes spin {
+        to { transform: translate(-50%, -50%) rotate(360deg); }
       }
       .auth-error {
+        background: #fef2f2;
         color: #dc2626;
         font-size: 14px;
-        margin-top: 12px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-top: 16px;
         display: none;
+        text-align: center;
       }
       .auth-error.show {
         display: block;
+        animation: shake 0.4s ease;
+      }
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        20%, 60% { transform: translateX(-4px); }
+        40%, 80% { transform: translateX(4px); }
+      }
+      .auth-hint {
+        text-align: center;
+        margin-top: 24px;
+        font-size: 13px;
+        color: #888;
       }
       .hidden {
         display: none !important;
       }
 
       @media (prefers-color-scheme: dark) {
-        body,
-        .auth-overlay {
-          background: #1a1a1a;
+        body {
+          background: #111;
           color: #e5e5e5;
+        }
+        .auth-overlay {
+          background: linear-gradient(145deg, #111 0%, #1a1a1a 100%);
+        }
+        .auth-form {
+          background: #1e1e1e;
+          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        .auth-form:focus-within {
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .auth-subtitle {
+          color: #888;
+        }
+        .auth-input {
+          background: #2a2a2a;
+          border-color: #3a3a3a;
+        }
+        .auth-input:hover {
+          border-color: #4a4a4a;
+        }
+        .auth-input:focus {
+          border-color: #e5e5e5;
+          background: #333;
+          box-shadow: 0 0 0 3px rgba(229, 229, 229, 0.1);
+        }
+        .auth-input::placeholder {
+          color: #666;
+        }
+        .password-toggle {
+          color: #666;
+        }
+        .password-toggle:hover {
+          color: #999;
+          background: rgba(255, 255, 255, 0.08);
+        }
+        .auth-btn {
+          background: #e5e5e5;
+          color: #1a1a1a;
+        }
+        .auth-btn:hover:not(:disabled) {
+          background: #fff;
+        }
+        .auth-btn:disabled {
+          background: #555;
+          color: #888;
+        }
+        .auth-btn .spinner {
+          border-color: rgba(26, 26, 26, 0.3);
+          border-top-color: #1a1a1a;
+        }
+        .auth-error {
+          background: rgba(220, 38, 38, 0.15);
+          color: #f87171;
+        }
+        .auth-hint {
+          color: #666;
         }
         textarea::placeholder {
           color: #555;
@@ -171,22 +342,12 @@
           background: transparent;
           color: #e5e5e5;
         }
-        .auth-subtitle {
-          color: #888;
-        }
-        .auth-input {
-          background: #2a2a2a;
-          border-color: #444;
-        }
-        .auth-input:focus {
-          border-color: #666;
-        }
-        .auth-btn {
-          background: #e5e5e5;
-          color: #1a1a1a;
-        }
-        .auth-btn:hover {
-          background: #fff;
+      }
+
+      @media (max-width: 480px) {
+        .auth-form {
+          margin: 16px;
+          padding: 32px 24px;
         }
       }
     </style>
@@ -195,26 +356,41 @@
     <!-- Auth overlay -->
     <div class="auth-overlay" id="auth-overlay">
       <form class="auth-form" id="auth-form">
-        <div class="auth-title">Trame</div>
-        <div class="auth-subtitle">Sign in or create an account</div>
-        <input
-          type="email"
-          class="auth-input"
-          id="auth-email"
-          placeholder="Email"
-          required
-          autocomplete="email"
-        />
-        <input
-          type="password"
-          class="auth-input"
-          id="auth-password"
-          placeholder="Password"
-          required
-          autocomplete="current-password"
-        />
-        <button type="submit" class="auth-btn">Continue</button>
+        <div class="auth-header">
+          <div class="auth-title">Trame</div>
+          <div class="auth-subtitle">Your personal note space.<br>Sign in or create an account.</div>
+        </div>
+        <div class="auth-fields">
+          <div class="input-group">
+            <input
+              type="email"
+              class="auth-input"
+              id="auth-email"
+              placeholder="Email address"
+              required
+              autocomplete="email"
+              inputmode="email"
+            />
+          </div>
+          <div class="input-group">
+            <input
+              type="password"
+              class="auth-input"
+              id="auth-password"
+              placeholder="Password"
+              required
+              autocomplete="current-password"
+              minlength="8"
+            />
+            <button type="button" class="password-toggle" id="password-toggle" aria-label="Toggle password visibility"></button>
+          </div>
+        </div>
+        <button type="submit" class="auth-btn" id="auth-btn">
+          <span class="btn-text">Continue</span>
+          <span class="spinner"></span>
+        </button>
         <div class="auth-error" id="auth-error"></div>
+        <div class="auth-hint">New here? Just enter your email and pick a password.</div>
       </form>
     </div>
 
@@ -238,9 +414,17 @@
       const authEmail = document.getElementById("auth-email");
       const authPassword = document.getElementById("auth-password");
       const authError = document.getElementById("auth-error");
+      const authBtn = document.getElementById("auth-btn");
+      const passwordToggle = document.getElementById("password-toggle");
       const app = document.getElementById("app");
       const note = document.getElementById("note");
       let saveTimeout = null;
+
+      // Password visibility toggle
+      passwordToggle.addEventListener("click", () => {
+        const type = authPassword.type === "password" ? "text" : "password";
+        authPassword.type = type;
+      });
 
       async function init() {
         if (token) {
@@ -274,17 +458,24 @@
       function showAuth() {
         authOverlay.classList.remove("hidden");
         app.classList.add("hidden");
-        authEmail.focus();
+        app.classList.remove("visible");
+        setTimeout(() => authEmail.focus(), 100);
       }
 
       function showApp() {
         authOverlay.classList.add("hidden");
         app.classList.remove("hidden");
-        note.focus();
+        setTimeout(() => {
+          app.classList.add("visible");
+          note.focus();
+        }, 50);
       }
 
       function showError(msg) {
         authError.textContent = msg;
+        authError.classList.remove("show");
+        // Trigger reflow to restart animation
+        void authError.offsetWidth;
         authError.classList.add("show");
       }
 
@@ -292,57 +483,69 @@
         authError.classList.remove("show");
       }
 
+      function setLoading(loading) {
+        authBtn.disabled = loading;
+        authBtn.classList.toggle("loading", loading);
+      }
+
       authForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         hideError();
+        setLoading(true);
 
         const email = authEmail.value.trim();
         const password = authPassword.value;
 
-        // Try login first
-        let res = await fetch(API + "/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
+        try {
+          // Try login first
+          let res = await fetch(API + "/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
 
-        if (res.ok) {
+          if (res.ok) {
+            const data = await res.json();
+            token = data.token;
+            localStorage.setItem("token", token);
+            showApp();
+            await loadNote();
+            return;
+          }
+
+          // Login failed - check why
+          const loginError = await res.json();
+
+          // Wrong password - user exists but credentials don't match
+          if (loginError.error === "Invalid credentials") {
+            showError("Incorrect password. Please try again.");
+            return;
+          }
+
+          // User not found - try signup
+          res = await fetch(API + "/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+
+          if (!res.ok) {
+            const data = await res.json();
+            showError(data.error || "Something went wrong. Please try again.");
+            return;
+          }
+
           const data = await res.json();
           token = data.token;
           localStorage.setItem("token", token);
+
           showApp();
           await loadNote();
-          return;
+        } catch (err) {
+          showError("Unable to connect. Please check your connection.");
+        } finally {
+          setLoading(false);
         }
-
-        // Login failed - check why
-        const loginError = await res.json();
-
-        // Wrong password - user exists but credentials don't match
-        if (loginError.error === "Invalid credentials") {
-          showError("Incorrect password");
-          return;
-        }
-
-        // User not found - try signup
-        res = await fetch(API + "/signup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-
-        if (!res.ok) {
-          const data = await res.json();
-          showError(data.error || "Authentication failed");
-          return;
-        }
-
-        const data = await res.json();
-        token = data.token;
-        localStorage.setItem("token", token);
-
-        showApp();
-        await loadNote();
       });
 
       async function loadNote() {
