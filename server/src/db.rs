@@ -1,6 +1,8 @@
 use rusqlite::{params, Connection};
 use std::sync::Mutex;
 
+use crate::chunker::chunk_and_hash;
+
 pub struct Database {
     conn: Mutex<Connection>,
 }
@@ -27,6 +29,21 @@ pub struct Session {
     pub token: String,
     pub user_id: String,
     pub expires_at: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct Chunk {
+    pub id: String,
+    pub note_id: String,
+    pub sequence: i32,
+    pub chunk_type: String,
+    pub heading_level: Option<i32>,
+    pub content: String,
+    pub content_hash: String,
+    pub start_offset: i32,
+    pub end_offset: i32,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 impl Database {
@@ -65,6 +82,22 @@ impl Database {
 
             CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
             CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id);
+
+            CREATE TABLE IF NOT EXISTS chunks (
+                id TEXT PRIMARY KEY,
+                note_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+                sequence INTEGER NOT NULL,
+                chunk_type TEXT NOT NULL,
+                heading_level INTEGER,
+                content TEXT NOT NULL,
+                content_hash TEXT NOT NULL,
+                start_offset INTEGER NOT NULL,
+                end_offset INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_chunks_note ON chunks(note_id);
             ",
         )?;
 
@@ -192,7 +225,7 @@ impl Database {
 
     pub fn update_note(&self, user_id: &str, content: &str) -> Result<Note, rusqlite::Error> {
         // Ensure note exists
-        self.get_or_create_note(user_id)?;
+        let note = self.get_or_create_note(user_id)?;
 
         let conn = self.conn.lock().unwrap();
         let now = chrono::Utc::now().to_rfc3339();
@@ -204,7 +237,123 @@ impl Database {
         )?;
 
         drop(conn);
+
+        // Update chunks
+        self.replace_chunks(&note.id, content)?;
+
         self.get_or_create_note(user_id)
+    }
+
+    // Chunks
+    pub fn replace_chunks(&self, note_id: &str, content: &str) -> Result<Vec<Chunk>, rusqlite::Error> {
+        let new_chunks = chunk_and_hash(content);
+        let conn = self.conn.lock().unwrap();
+        let now = chrono::Utc::now().to_rfc3339();
+
+        // Get existing chunks with their hashes
+        let mut existing_hashes: std::collections::HashMap<String, Chunk> = std::collections::HashMap::new();
+        {
+            let mut stmt = conn.prepare(
+                "SELECT id, note_id, sequence, chunk_type, heading_level, content, content_hash, start_offset, end_offset, created_at, updated_at
+                 FROM chunks WHERE note_id = ?1"
+            )?;
+            let mut rows = stmt.query(params![note_id])?;
+            while let Some(row) = rows.next()? {
+                let chunk = Chunk {
+                    id: row.get(0)?,
+                    note_id: row.get(1)?,
+                    sequence: row.get(2)?,
+                    chunk_type: row.get(3)?,
+                    heading_level: row.get(4)?,
+                    content: row.get(5)?,
+                    content_hash: row.get(6)?,
+                    start_offset: row.get(7)?,
+                    end_offset: row.get(8)?,
+                    created_at: row.get(9)?,
+                    updated_at: row.get(10)?,
+                };
+                existing_hashes.insert(chunk.content_hash.clone(), chunk);
+            }
+        }
+
+        // Delete all existing chunks for this note
+        conn.execute("DELETE FROM chunks WHERE note_id = ?1", params![note_id])?;
+
+        // Insert new chunks, reusing timestamps for unchanged content
+        let mut result = Vec::new();
+        for (seq, chunk_with_hash) in new_chunks.iter().enumerate() {
+            let id = ulid::Ulid::new().to_string();
+            let chunk = &chunk_with_hash.chunk;
+
+            // Check if content existed before (by hash)
+            let (created_at, updated_at) = if let Some(existing) = existing_hashes.get(&chunk_with_hash.content_hash) {
+                // Content unchanged - preserve original timestamps
+                (existing.created_at.clone(), existing.updated_at.clone())
+            } else {
+                // New or modified content
+                (now.clone(), now.clone())
+            };
+
+            conn.execute(
+                "INSERT INTO chunks (id, note_id, sequence, chunk_type, heading_level, content, content_hash, start_offset, end_offset, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                params![
+                    id,
+                    note_id,
+                    seq as i32,
+                    chunk.chunk_type.as_str(),
+                    chunk.heading_level.map(|l| l as i32),
+                    chunk.content,
+                    chunk_with_hash.content_hash,
+                    chunk.start_offset as i32,
+                    chunk.end_offset as i32,
+                    created_at,
+                    updated_at,
+                ],
+            )?;
+
+            result.push(Chunk {
+                id,
+                note_id: note_id.to_string(),
+                sequence: seq as i32,
+                chunk_type: chunk.chunk_type.as_str().to_string(),
+                heading_level: chunk.heading_level.map(|l| l as i32),
+                content: chunk.content.clone(),
+                content_hash: chunk_with_hash.content_hash.clone(),
+                start_offset: chunk.start_offset as i32,
+                end_offset: chunk.end_offset as i32,
+                created_at,
+                updated_at,
+            });
+        }
+
+        Ok(result)
+    }
+
+    pub fn get_chunks(&self, note_id: &str) -> Result<Vec<Chunk>, rusqlite::Error> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, note_id, sequence, chunk_type, heading_level, content, content_hash, start_offset, end_offset, created_at, updated_at
+             FROM chunks WHERE note_id = ?1 ORDER BY sequence"
+        )?;
+        let mut rows = stmt.query(params![note_id])?;
+        let mut chunks = Vec::new();
+        while let Some(row) = rows.next()? {
+            chunks.push(Chunk {
+                id: row.get(0)?,
+                note_id: row.get(1)?,
+                sequence: row.get(2)?,
+                chunk_type: row.get(3)?,
+                heading_level: row.get(4)?,
+                content: row.get(5)?,
+                content_hash: row.get(6)?,
+                start_offset: row.get(7)?,
+                end_offset: row.get(8)?,
+                created_at: row.get(9)?,
+                updated_at: row.get(10)?,
+            });
+        }
+        Ok(chunks)
     }
 }
 
